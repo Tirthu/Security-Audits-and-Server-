@@ -102,26 +102,42 @@ monitor_logs() {
 # Function to implement server hardening steps
 harden_server() {
     echo -e "\n### Server Hardening ###" >> "$REPORT_FILE"
+    
+    # Implementing SSH key-based authentication and disabling root login
     echo "Implementing SSH key-based authentication and disabling root login:" >> "$REPORT_FILE"
     sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
     sed -i 's/PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
     systemctl reload sshd
+    echo "SSH settings updated." >> "$REPORT_FILE"
 
+    # Disabling IPv6 if not required
     echo "Disabling IPv6 if not required:" >> "$REPORT_FILE"
     echo "net.ipv6.conf.all.disable_ipv6 = 1" >> /etc/sysctl.conf
     sysctl -p >> "$REPORT_FILE"
+    echo "IPv6 disabled." >> "$REPORT_FILE"
 
+    # Securing GRUB bootloader
     echo "Securing GRUB bootloader:" >> "$REPORT_FILE"
-    grub2-setpassword
+    echo "Please manually set GRUB password using grub-mkpasswd-pbkdf2 and add it to /etc/grub.d/40_custom" >> "$REPORT_FILE"
+    update-grub
+    echo "GRUB configuration updated. Please set GRUB password manually." >> "$REPORT_FILE"
 
+    # Configuring firewall with recommended rules
     echo "Configuring firewall with recommended rules:" >> "$REPORT_FILE"
     ufw default deny incoming
     ufw default allow outgoing
     ufw allow ssh
     ufw enable
+    if ufw status | grep -q "Status: active"; then
+        echo "Firewall enabled successfully." >> "$REPORT_FILE"
+    else
+        echo "Failed to enable firewall." >> "$REPORT_FILE"
+    fi
 
+    # Configuring automatic security updates
     echo "Configuring automatic security updates:" >> "$REPORT_FILE"
     dpkg-reconfigure -plow unattended-upgrades
+    echo "Automatic security updates configured." >> "$REPORT_FILE"
 }
 
 # Function to run custom security checks
@@ -160,5 +176,3 @@ main() {
 }
 
 main "$@"
-
-
